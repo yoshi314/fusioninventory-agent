@@ -36,9 +36,15 @@ sub doInventory {
 
     my $command = "$toolstack list";
     foreach my $machine (_getVirtualMachines(command => $command, logger => $logger)) {
+	$logger->info("checking line : $machine");
+
         $machine->{SUBSYSTEM} = $toolstack;
+
+	$logger->info("checking uuid for machine $machine->{NAME}");
         my $uuid = _getUUID(
-            command => "$command $listParam $machine->{NAME}",
+			# machine name must be quoted to work when name has spaces
+			# works also for machines without spaces in name
+            command => "$command $listParam \"$machine->{NAME}\"",
             logger  => $logger
         );
         $machine->{UUID} = $uuid;
@@ -81,13 +87,28 @@ sub  _getVirtualMachines {
     my @machines;
     while (my $line = <$handle>) {
         chomp $line;
+        print ("parsing : $line\n");
         my ($name, $vmid, $memory, $vcpu, $status);
         my @fields = split(' ', $line);
         if (@fields == 4) {
                 ($name, $memory, $vcpu) = @fields;
                 $status = 'off';
         } else {
+		if (@fields > 5) {
+			#special case for vms with spaces
+			#go forward ~40 characters
+			#(this has yet to be reworked to be smarter)
+			$name = substr($line,0,39);
+			# trim the ending whitespace
+			$name =~ s/\s+$//;
+			my $tmpline = substr($line,40);
+			@fields = split(' ',$tmpline);
+			($vmid,$memory,$vcpu,$status) = @fields;
+		} else {
+
+
                 ($name, $vmid, $memory, $vcpu, $status) = @fields;
+		}
                 $status =~ s/-//g;
                 $status = $status ? $status_list{$status} : 'off';
                next if $vmid == 0;
@@ -112,3 +133,4 @@ sub  _getVirtualMachines {
 }
 
 1;
+

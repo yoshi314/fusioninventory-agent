@@ -7,6 +7,11 @@ use FusionInventory::Agent::Tools;
 use FusionInventory::Agent::Tools::Solaris;
 use FusionInventory::Agent::Tools::Virtualization;
 
+my %PackageConfig=(
+    LXCuuidFile => '/var/lib/fusioninventory-agent/fake_uuid/vmUUID',
+    HOSTuuidFile => '/var/lib/fusioninventory-agent/fake_uuid/UUID',
+);
+
 my @vmware_patterns = (
     'Hypervisor detected: VMware',
     'VMware vmxnet3? virtual NIC driver',
@@ -78,7 +83,15 @@ sub doInventory {
     # compute a compound identifier, as Virtuozzo uses the same identifier
     # for the host and for the guests
     if ($type eq 'Virtuozzo') {
-        my $hostID  = $inventory->getHardware('UUID') || '';
+
+      my $hostID='';
+      if ( open UUIDFILE, "<", "$PackageConfig{HOSTuuidFile}" ) {
+        $hostID =<UUIDFILE>;
+        chomp $hostID;
+        close UUIDFILE;
+      } else { warn $! };
+
+#        my $hostID  = $inventory->getHardware('UUID') || '';
         my $guestID = getFirstMatch(
             file => '/proc/self/status',
             pattern => qr/^envID:\s*(\d+)/
@@ -255,6 +268,13 @@ sub _getType {
             $result = "Virtuozzo" if $key eq 'envID' && $value > 0;
         }
     }
+    
+    # LXC
+    if (-f $PackageConfig{LXCuuidFile}) {
+	$result = "lxc";
+	return $result;
+	};
+    
     return $result if $result;
 
     return 'Physical';

@@ -2,6 +2,7 @@ package FusionInventory::Agent::Task::Inventory::Generic::Networks::iLO;
 
 use strict;
 use warnings;
+use Socket;
 
 use English qw(-no_match_vars);
 
@@ -18,6 +19,8 @@ sub _parseHponcfg {
     my (%params) = @_;
 
     my $handle = getFileHandle(%params);
+    my $name = '';
+    my $domainname = '';
 
     return unless $handle;
 
@@ -38,6 +41,12 @@ sub _parseHponcfg {
         if ($line =~ /<GATEWAY_IP_ADDRESS VALUE="($ip_address_pattern)"\/>/) {
             $interface->{IPGATEWAY} = $1;
         }
+        if ($line =~ /<DNS_NAME VALUE="(\S+)"\/>/) {
+            $name = $1;
+        }
+        if ($line =~ /<DOMAIN_NAME VALUE="(\S+)"\/>/) {
+            $domainname = $1;
+        }
         if ($line =~ /<NIC_SPEED VALUE="([0-9]+)" ?\/>/) {
             $interface->{SPEED} = $1;
         }
@@ -51,6 +60,16 @@ sub _parseHponcfg {
         }
     }
     close $handle;
+
+    if ((!$name eq '') && ($interface->{IPADDRESS} eq '')) {
+       if (!$domainname eq '') {
+           $name = $name . '.' . $domainname ;
+       }
+       if (defined inet_aton($name)) { 
+           $interface->{IPADDRESS} = inet_ntoa(inet_aton($name));
+       }
+    }
+
     $interface->{IPSUBNET} = getSubnetAddress(
         $interface->{IPADDRESS}, $interface->{IPMASK}
     );
