@@ -8,8 +8,7 @@ use FusionInventory::Agent::Tools::Solaris;
 use FusionInventory::Agent::Tools::Virtualization;
 
 my %PackageConfig=(
-    LXCuuidFile => '/var/lib/fusioninventory-agent/fake_uuid/vmUUID',
-    HOSTuuidFile => '/var/lib/fusioninventory-agent/fake_uuid/UUID',
+    GuestUUIDFile=> '/var/lib/fusioninventory-agent/fake_uuid/vmUUID',
 );
 
 my @vmware_patterns = (
@@ -80,9 +79,8 @@ sub doInventory {
         });
     }
 
-    # compute a compound identifier, as Virtuozzo uses the same identifier
-    # for the host and for the guests
-    if ($type eq 'Virtuozzo') {
+    #obliczamy uuid dla wirtualki
+    #potrzebne jest uuid-runtime
 
       my $hostID='';
       if ( open UUIDFILE, "<", "$PackageConfig{HOSTuuidFile}" ) {

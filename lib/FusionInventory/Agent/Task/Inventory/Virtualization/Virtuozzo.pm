@@ -74,7 +74,15 @@ sub doInventory {
 
         # compute specific identifier for the guest, as CTID is
         # unique only for the local hosts
-        my $uuid = $hostID . '-' . $ctid;
+        my $vmid;
+        if ( open UUIDFILE, "<", "/var/lib/fusioninventory-agent/fake_uuid/vmUUID" ) {
+            $vmid=<UUIDFILE>;
+            chomp $vmid;
+            close UUIDFILE;
+        } else { warn $! };
+        my $uuid = $vmid;        
+
+
 
         $inventory->addEntry(
             section => 'VIRTUALMACHINES',

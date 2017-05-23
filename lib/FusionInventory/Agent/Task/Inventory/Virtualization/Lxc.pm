@@ -19,13 +19,6 @@ sub doInventory {
     my $inventory = $params{inventory};
     my $logger    = $params{logger};
 
-    my $hostID='';
-    if ( open UUIDFILE, "<", "/var/lib/fusioninventory-agent/fake_uuid/UUID" ) {
-        $hostID =<UUIDFILE>;
-        chomp $hostID;
-        close UUIDFILE;
-    } else { warn $! };
-
     my @machines = _getVirtualMachines(
         command => '/usr/bin/lxc-ls -1',
         logger => $logger
@@ -138,13 +131,14 @@ sub  _getVirtualMachines {
 
         # compute specific identifier for the guest, as container name is
         # unique only for the local hosts
-        my $hostID='';
-        if ( open UUIDFILE, "<", "/var/lib/fusioninventory-agent/fake_uuid/UUID" ) {
-            $hostID =<UUIDFILE>;
-            chomp $hostID;
+        my $vmid='';
+        #otworzyc plik z wirtualki, znalezc rootfs ; TODO
+        if ( open UUIDFILE, "<", "/var/lib/fusioninventory-agent/fake_uuid/vmUUID" ) {
+            $vmid=<UUIDFILE>;
+            chomp $vmid;
             close UUIDFILE;
         } else { warn $! };
-        my $uuid = $hostID . '-' . $name;        
+        my $uuid = $vmid;        
 
         push @machines, {
             NAME   => $name,
