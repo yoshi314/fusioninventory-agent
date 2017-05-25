@@ -52,6 +52,24 @@ sub  _getVirtualMachineState {
         $info{state};
 }
 
+
+sub _getVirtualMachineLocation { 
+    my (%params) = @_;
+
+    my $handle = getFileHandle(%params);
+    return unless $handle;
+
+    my %info;
+    while (my $line = <$handle>){
+        chomp $line;
+        next unless $line =~ m/^\s*(\S+)\s*=\s*(\S+)\s*$/;
+        $info{lc($1)} = $2;
+    }
+    close $handle;
+
+    return $info{"lxc.rootfs"};
+}
+
 sub  _getVirtualMachineConfig {
     my (%params) = @_;
 
@@ -107,6 +125,12 @@ sub  _getVirtualMachines {
         chomp $name;
         next unless length($name);
 
+	my $lxcrootfs = _getVirtualMachineLocation(
+		command =>"/usr/bin/lxc-info -n $name -c lxc.rootfs",
+		logger => $params{logger}
+	);
+
+
         my $status = _getVirtualMachineState(
             command => "/usr/bin/lxc-info -n '$name'",
             logger => $params{logger}
@@ -125,15 +149,19 @@ sub  _getVirtualMachines {
             );
 
         my $config = _getVirtualMachineConfig(
-            file => "/var/lib/lxc/$name/config",
+            file => "${lxcrootfs}/\.\./config",
             logger => $params{logger}
         );
 
         # compute specific identifier for the guest, as container name is
         # unique only for the local hosts
         my $vmid='';
-        #otworzyc plik z wirtualki, znalezc rootfs ; TODO
-        if ( open UUIDFILE, "<", "/var/lib/fusioninventory-agent/fake_uuid/vmUUID" ) {
+        # otworzyc plik z wirtualki, znalezc rootfs ; TODO
+	# lxc-attach -n samba4 -- cat /var/lib/fusioninventory-agent/fake_uuid/vmUUID
+
+	print "opening ${lxcrootfs}/var/lib/fusioninventory-agent/fake_uuid/vmUUID\n";
+
+        if ( open UUIDFILE, "<", "${lxcrootfs}/var/lib/fusioninventory-agent/fake_uuid/vmUUID" ) {
             $vmid=<UUIDFILE>;
             chomp $vmid;
             close UUIDFILE;
